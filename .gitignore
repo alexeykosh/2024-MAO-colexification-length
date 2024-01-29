@@ -1,0 +1,8 @@
+# Ignore the lexibank-lexibank-analysed-a4c0952 folder
+/data/lexibank-lexibank-analysed-a4c0952/
+
+# Ignore the stan1290.csv file
+/data/stan1290.csv
+
+# Ignore .DS_Store files
+.DS_Store
