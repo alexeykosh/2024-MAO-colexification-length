@@ -1,8 +1,11 @@
-setwd("~/ENS/1A/stage/code")
 library(tidyverse)
 library(lme4)
 
+# set ggplot theme
 theme_set(theme_bw())
+
+# run the python preprocessing script
+# system2('python3 preprocessing.py')
 
 # Inverse logit function
 inverse_logit <- function(x){
