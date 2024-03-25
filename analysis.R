@@ -129,6 +129,7 @@ model_no_rs_filtered <- glmer(colexification_bin ~ 1 + z_length + z_n_forms
                           data = logistic_data_filtered)
 summary(model_no_rs_filtered)
 
+#model with random slope
 model_rs_filtered <- glmer(colexification_bin ~ 1 + z_length + z_n_forms 
                               + (1 + z_length | Family / Glottocode), 
                               family = "binomial",
