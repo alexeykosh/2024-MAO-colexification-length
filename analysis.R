@@ -31,12 +31,11 @@ lexibank_all_colex <- lexibank_all %>%
   distinct(Form, .keep_all = TRUE) %>%
   mutate(colexification_bin = ifelse(colexification > 1, 1, 0))
 logistic_data <- lexibank_all_colex %>%
-  # transform(shuffle_colexification_bin = sample(colexification_bin)) %>%
   group_by(Glottocode) %>%
   mutate(z_length = (Length - mean(Length)) / sd(Length))  %>%
   ungroup()  %>%
   mutate(z_n_forms = (n_forms - mean(n_forms)) / sd(n_forms))
-
+## Removing non-labelled families
 logistic_data <- logistic_data[-which(logistic_data$Family == ""), ]
 
 # Statistical analysis
@@ -60,61 +59,40 @@ model_shuffle <- glmer(colexification_bin ~ 1 + z_length + z_n_forms
      data = logistic_data)
 summary(model_shuffle)
 AIC(model_shuffle)
-## Plotting the random slopes and intercepts
+
+
+# Plotting the random slopes and intercepts
+## Dotplot 
 # pdf('figures/random_intercepts.pdf', width=20, height=20)
 # print(dotplot(ranef(model_shuffle)))
 # dev.off()
-
 random_effects <- ranef(model_shuffle, condVar = TRUE)
 random_effects
-
+## Plotting random slopes 
 ### Create a data frame for plotting
 mean_forms <- logistic_data %>%
   group_by(Family) %>%
   summarize(mean_n = mean(n_forms))
 plot_data <- data.frame(group = factor(rownames(ranef(model_shuffle)$Family)),
-                        intercept = ranef(model_shuffle)$Family$z_length)
-plot_data <- merge(plot_data, mean_forms, by.x = "group", by.y = "Family", all.x = TRUE)
-documentation = logistic_data %>% group_by(Family) %>% mutate(z_n_forms = (n_forms - mean(n_forms)) / sd(n_forms))
-plot_data <- merge(plot_data, documentation, by.x="group", by.y="Family", all.x = TRUE)
-
-### Plot using ggplot2
+                        slope = ranef(model_shuffle)$Family$z_length)
+plot_data <- merge(plot_data, mean_forms, by.x = "group", by.y = "Family", 
+                   all.x = TRUE)
+documentation = logistic_data %>% group_by(Family) %>% 
+  mutate(z_n_forms = (n_forms - mean(n_forms)) / sd(n_forms))
+plot_data <- merge(plot_data, documentation, by.x="group", by.y="Family", 
+                   all.x = TRUE)
+### Ploting
 plot_data <- plot_data %>%
-  arrange(intercept) %>%
+  arrange(slope) %>%
   mutate(group = factor(group, levels = group))
-p <- ggplot(plot_data, aes(x = intercept, y = group, color = mean_n)) +
+p <- ggplot(plot_data, aes(x = slope, y = group, color = mean_n)) +
   geom_point() +
-  labs(y = "", x = "Random Intercept", color = "Mean Forms") +
+  labs(y = "", x = "Random Slope (length)", color = "Mean Forms") +
   theme_bw() +
   geom_vline(xintercept = 0, color = 'red', linetype = "dashed") +
   theme(axis.text.y = element_text(size=6)) +
   scale_color_gradientn(colours = rainbow(5))
 ggsave('figures/random_intercepts.pdf', p, width = 10, height = 10)
-
-#Marie
-plot_data <- plot_data %>%
-  arrange(intercept)
-
-ggplot(plot_data, aes(x = intercept, y = group, color = z_n_forms)) +
-  geom_point() +
-  labs(y = "", x = "Random Intercept", color = "Level of documentation") +
-  theme_bw() +
-  geom_vline(xintercept = 0, color = 'red', linetype = "dashed") +
-  theme(axis.text.y = element_text(size=6)) +
-  scale_color_gradientn(colours = rainbow(5))
-
-
-intercept <- ranef(model_shuffle)$Family[, "(Intercept)"]
-median_intercept <- median(intercept)
-sd_intercept <- sd(intercept)
-outliers <- levels(logistic_data$Family)[abs(intercept - median_intercept) > 0.25 * sd_intercept]
-logistic_data_filtered <- logistic_data %>%
-  filter(!(Family %in% outliers))
-model_filtered <- glmer(colexification_bin ~ 1 + z_length + z_n_forms + (1 + z_length | Family / Glottocode), 
-                        family = "binomial",
-                        data = logistic_data_filtered)
-model_filtered
-
 
 # Avg comparisons
 ## Computing
@@ -134,13 +112,39 @@ plot_predictions(model_shuffle,
   ylim(0, 1)
 
 
+# Removing outliers by slope 
+random_effects_d <- data.frame(random_effects$Family)
+random_effects_d <- random_effects_d %>% 
+  filter(z_length <= 0.25 & z_length >= -0.25)
+## List of families which are in the [-0.25, 0.25] range by slope (length)
+family_no <- rownames(random_effects_d)
+## Filter families
+logistic_data_filtered <- logistic_data %>%
+  filter(Family %in% family_no)
+
+# New regression without outliers
+model_no_rs_filtered <- glmer(colexification_bin ~ 1 + z_length + z_n_forms 
+                          + (1 | Family / Glottocode), 
+                          family = "binomial",
+                          data = logistic_data_filtered)
+summary(model_no_rs_filtered)
+
+model_rs_filtered <- glmer(colexification_bin ~ 1 + z_length + z_n_forms 
+                              + (1 + z_length | Family / Glottocode), 
+                              family = "binomial",
+                              data = logistic_data_filtered)
+summary(model_rs_filtered)
 
 
-### Test with small dataset (only 4 languages, 3 families) Marie
 
-
+######## Test with small dataset (only 4 languages, 3 families) Marie #######
 small_dataset <- logistic_data %>%
   filter(Glottocode %in% c("sart1249","wang1301","kolu1245","swed1254"))
+
+# randomly sample 40 languages:
+
+# do the subset with the 40 random lgs: 
+
 
 s_model_shuffle_null <- glmer(colexification_bin ~ 1 + z_n_forms 
                             + (1 | Family / Glottocode), 
@@ -183,22 +187,22 @@ s_plot_data <- merge(s_plot_data, s_documentation, by.x="group", by.y="Family", 
 s_plot_data <- s_plot_data %>%
   arrange(intercept) %>%
   mutate(group = factor(group, levels = group))
-s <- ggplot(s_plot_data, aes(x = intercept, y = group, color = mean_n)) +
+ggplot(s_plot_data, aes(x = intercept, y = group, color = mean_n)) +
   geom_point() +
   labs(y = "", x = "Random Intercept", color = "Mean Forms") +
   theme_bw() +
   geom_vline(xintercept = 0, color = 'red', linetype = "dashed") +
   theme(axis.text.y = element_text(size=6)) +
   scale_color_gradientn(colours = rainbow(5))
-s
-ggsave('figures/random_intercepts.pdf', p, width = 10, height = 10)
+# s
+# ggsave('figures/random_intercepts.pdf', p, width = 10, height = 10)
 
 s_plot_data <- s_plot_data %>%
   arrange(intercept)
 
 ggplot(s_plot_data, aes(x = intercept, y = group, color = z_n_forms)) +
   geom_point() +
-  labs(y = "", x = "Random Intercept", color = "Level of documentation") +
+  labs(y = "", x = "Random Slope", color = "Level of documentation") +
   theme_bw() +
   geom_vline(xintercept = 0, color = 'red', linetype = "dashed") +
   theme(axis.text.y = element_text(size=6)) +
@@ -234,97 +238,22 @@ plot_predictions(s_model_shuffle,
   # theme(legend.position = 'none') +
   ylim(0, 1)
 
+# Outlier removal and new analysis
+## Getting the intercept
+intercept <- ranef(model_shuffle)$Family[, "(Intercept)"]
+# computing the median
+median_intercept <- median(intercept)
+sd_intercept <- sd(intercept)
+outliers <- levels(logistic_data$Family)[abs(intercept - median_intercept) > 
+                                           0.25 * sd_intercept]
+## Filter the outlies from the initial dataset
+logistic_data_filtered <- logistic_data %>%
+  filter(!(Family %in% outliers))
+## Fit a new model 
+model_filtered <- glmer(colexification_bin ~ 1 + z_length + z_n_forms + (1 + z_length | Family / Glottocode), 
+                        family = "binomial",
+                        data = logistic_data_filtered)
+model_filtered
 
 
-# voilà les analyses que j'ai faites même si tu m'as dit qu'avec geom_smooth ça n'allait pas
-
-library(ggplot2)
-
-ggplot(logistic_data, aes(y = colexification_bin, x=z_length)) +  
-  geom_point(size=0.2) + 
-  geom_smooth(method="glm", method.args = list(family = binomial))  +
-  labs(
-    title = "Probability of colexification according to wordform length all data", 
-    x = "Length (z-scored)",
-    y = "Probability of colexification"
-  )
-
-quantiles <- quantile(logistic_data$z_n_forms, probs = seq(0, 1, by = 0.20))
-logistic_data$z_n_forms_category <- cut(logistic_data$z_n_forms, breaks = quantiles, include.lowest = TRUE)
-logistic_data$z_n_forms_category <- factor(logistic_data$z_n_forms_category)
-levels(logistic_data$z_n_forms_category)
-
-ggplot(logistic_data, aes(y = colexification_bin, x = z_length,color=z_n_forms_category)) +  
-  geom_point(size = 0.2) + 
-  geom_smooth(method = "glm", method.args = list(family = binomial)) +
-  labs(
-    title = "Probability of colexification according to wordform length all data", 
-    x = "Length (z-scored)",
-    y = "Probability of colexification"
-  ) 
-
-residuals <- resid(model_shuffle)
-
-ggplot(data.frame(residuals = residuals), aes(x = seq_along(residuals), y = residuals)) +
-  geom_point(size=0.1) +
-  geom_hline(yintercept = 0, linetype = "dashed") +
-  labs(x = "Observation", y = "Residuals", title = "Plot of Residuals")
-
-residus_simules <- simulateResiduals(fittedModel = model_shuffle)
-plot(residus_simules, type = "qqplot")
-resultat_test <- testOutliers(simulationOutput = residus_simules, type = 'bootstrap')
-print(resultat_test)
-testOutliers(residus_simules, alternative = c("two.sided", "greater",
-                                              "less"), margin = c("both", "upper", "lower"), type = c("default",
-                                                                                                      "bootstrap", "binomial"), nBoot = 100, plot = T)
-
-install.packages("sjPlot")
-install.packages("glmmTMB")
-library(sjPlot)
-plot_model(model_shuffle, type = "re", vspacing = 10, vsize = 0.02,)
-
-install.packages("boot")
-library(boot)
-help(boot)
-
-residuals(model_shuffle, type = "deviance")
-
-data_S_T<- logistic_data %>% 
-  filter(Family == "Sino-Tibetan")
-
-ggplot(data_S_T, aes(y = colexification_bin, x = z_length)) +  
-  geom_point(size = 0.2) + 
-  geom_smooth(method = "glm", method.args = list(family = binomial)) +
-  labs(
-    title ="Probability of colexification according to wordform length for Sino_Tibetan families", 
-    x = "Length (z-scored)",
-    y = "Probability of colexification"
-  )
-
-data_I_E<- logistic_data %>% 
-  filter(Family == "Indo-European")
-
-ggplot(data_I_E, aes(y = colexification_bin, x = z_length)) +  
-  geom_point(size = 0.2) + 
-  geom_smooth(method = "glm", method.args = list(family = binomial)) +
-  labs(
-    title ="Probability of colexification according to wordform length for Indo-European families", 
-    x = "Length (z-scored)",
-    y = "Probability of colexification"
-  )
-
-data_Ijoid<- logistic_data %>% 
-  filter(Family == "Ijoid")
-
-ggplot(data_Ijoid, aes(y = colexification_bin, x = z_length)) +  
-  geom_point(size = 0.2) + 
-  geom_smooth(method = "glm", method.args = list(family = binomial)) +
-  labs(
-    title ="Probability of colexification according to wordform length for Ijoid families", 
-    x = "Length (z-scored)",
-    y = "Probability of colexification"
-  )
-
-plot(model_shuffle)
-
- 
+######## Test with small dataset (only 4 languages, 3 families) Marie #######
