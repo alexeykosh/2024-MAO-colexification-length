@@ -83,8 +83,7 @@ plot_data <- merge(plot_data, documentation, by.x="group", by.y="Family",
                    all.x = TRUE)
 ### Ploting
 plot_data <- plot_data %>%
-  arrange(slope) %>%
-  mutate(group = factor(group, levels = group))
+  arrange(slope) 
 p <- ggplot(plot_data, aes(x = slope, y = group, color = mean_n)) +
   geom_point() +
   labs(y = "", x = "Random Slope (length)", color = "Mean Forms") +
@@ -99,17 +98,36 @@ ggsave('figures/random_intercepts.pdf', p, width = 10, height = 10)
 avg <- model_shuffle %>%
   avg_predictions(variables = "z_n_forms", 
               by = "z_n_forms", type = "response")
-avg
+
 ## Plotting avg comparisons
-plot_predictions(model_shuffle, 
-                 condition = list("z_length", 
-                                  "z_n_forms"),
-                 type = "response") +
-  xlab('Length (z-scored)') +
-  ylab('Probability of colexification') +
-  # facet_wrap(~condition2, nrow=1) +
-  # theme(legend.position = 'none') +
-  ylim(0, 1)
+avg %>%
+  ggplot(aes(x = z_n_forms, y=estimate))+
+  geom_point()+
+  geom_errorbar(aes(ymin=conf.low, ymax=conf.high))+
+  xlab('Number of forms') +
+  ylab('Slope')
+
+## Plotting avg length against slope:
+plot_data %>%
+  group_by(group) %>%
+  summarize(mean_slope = mean(slope), mean_length = mean(Length)) %>%
+  ggplot(aes(x=mean_length, y=mean_slope)) +
+  geom_rect(aes(xmin = -Inf, xmax = Inf, 
+                ymin = -Inf, ymax = 0), fill = "grey80", alpha = 0.1) +
+  geom_point() + # annotate with geom_repel
+  xlab('Average length') +
+  ylab('Slope') +
+  
+
+# plot_predictions(model_shuffle, 
+#                  condition = list("z_length", 
+#                                   "z_n_forms"),
+#                  type = "response") +
+#   xlab('Length (z-scored)') +
+#   ylab('Probability of colexification') +
+#   # facet_wrap(~condition2, nrow=1) +
+#   # theme(legend.position = 'none') +
+#   ylim(0, 1)
 
 
 # Removing outliers by slope 
