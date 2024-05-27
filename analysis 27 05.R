@@ -149,4 +149,20 @@ summary(model_rs_filtered)
 
 #3. Adding interaction of length*n of forms ####
 
+interaction_model <- glmer(colexification_bin ~ 1 + z_length + z_n_forms + z_length * z_n_forms + 
+                             (1 + z_length | Family/Glottocode),
+                           family="binomial",
+                           data = logistic_data)
+AIC(interaction_model)
+confint(interaction_model)
 
+#4. Summary table #####
+
+type_of_model=c("null", "no random slope", "random slope", "no random slope")
+outliers_present=c("yes", "yes", "yes", "no")
+AIC=c(AIC(model_shuffle_null), AIC(model_shuffle_no_rd_slope),
+      AIC(model_shuffle), AIC(model_no_rs_filtered))
+confidence_intervals=c(confint(model_shuffle_null), confint(model_shuffle_no_rd_slope),
+                       confint(model_shuffle),confint(model_no_rs_filtered))
+df_summary= tibble(type_of_model, outliers_present, all_families_documented, AIC, confidence_intervals)
+df_summary
