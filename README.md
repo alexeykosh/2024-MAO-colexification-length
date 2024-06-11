@@ -8,6 +8,8 @@ Authors:
 - Olivier Morin
 - Marie Hallo
 
+Preregistration: [https://osf.io/8d4vh](https://osf.io/8d4vh/?view_only=40c3e016cfc64d5491e7306e7590967b)
+
 
 ## Reproduction 
 
