@@ -33,7 +33,7 @@ pip install -r requirements.txt
 
 ### Data:
 
-[Lexibank](https://lexibank.clld.org/) data used in this study needs to be downloaded from here [link](https://zenodo.org/records/7836668). The downloaded zip file needs to be placed in the `data/` directory. 
+[Lexibank](https://lexibank.clld.org/) data used in this study needs to be downloaded from [here](https://zenodo.org/records/7836668). The downloaded zip file needs to be placed in the `data/` directory. 
 
 After downloading the data, run the following command to extract the data:
 
