@@ -41,7 +41,13 @@ After downloading the data, run the following command to extract the data:
 python3 preprocessing.py 
 ```
 
+Then, run the second preprocessing script to extract data from Pimentel et al. 2020. Their data can be downloaded from [here](https://github.com/tpimentelms/lexical-ambiguity-in-context). 
+
+```bash
+python3 preprocessing2.py
+```
 
 ### Analysis:
 
 - [analysis.R](https://github.com/alexeykosh/2024-MAO-colexification-length/blob/main/analysis.R) -- the main script for the analysis of the data. 
+- [analysis2.R](https://github.com/alexeykosh/2024-MAO-colexification-length/blob/main/analysis2.R) -- script used for the analyses of Pimentel et al. 2020 data. 
