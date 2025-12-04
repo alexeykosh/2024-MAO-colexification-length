@@ -61,7 +61,7 @@ model_full_BERT <- lmer(z_bert_polysemy ~ 1 + z_freq + z_length
                    # family = "gaussian",
                    data = all_dat) 
 summary(model_full_BERT)
-model_full_BERT_ <- broom.mixed::tidy(model_full, 
+model_full_BERT_ <- broom.mixed::tidy(model_full_BERT, 
                                  effects = "fixed", 
                                  conf.int=TRUE) %>%
   mutate(term = recode(term,
@@ -73,6 +73,9 @@ model_full_BERT_
 ## Model comparison
 round(AIC(model_full_BERT) - AIC(model_null))
 
+## Partial correlation
+ppcor::pcor.test(all_dat$z_length, all_dat$z_bert_polysemy, 
+                 all_dat$z_freq, method='spearman')
 
 languages <- unique(all_dat$lang)
 
@@ -146,6 +149,10 @@ model_full_WORDNET_
 ## Model comparison
 round(AIC(model_full_WORDNET) - AIC(model_null))
 
+## Partial correlation
+v <- ppcor::pcor.test(wn_data$z_length, wn_data$wordnet_polysemy, 
+                 wn_data$z_freq, method='spearman')
+
 
 #Looking at the raw correlation, language by language:
 
@@ -154,8 +161,7 @@ for(i in languages){
   print(i)
   set <- subset(wn_data, wn_data$lang == i)
 print(cor(set$z_wordnet_polysemy, set$z_length, method = "spearman"))
-  }
-
+}
 
 # Plotting ----------------------------------------------------------------
 
@@ -174,7 +180,7 @@ newdat <- all_dat %>%
   }) %>%
   ungroup()
 ## Compute predictions
-pred <- predictions(model_full, newdata = newdat)
+pred <- predictions(model_full_BERT, newdata = newdat)
 ## Plot with model predictions
 ggplot() +
   geom_point(data = all_dat, 
