@@ -2,7 +2,7 @@
 
 <!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.11355636.svg)](https://doi.org/10.5281/zenodo.11355636) -->
 
-Authors: 
+Authors: Alexey Koshevoy, Marie Halo, Rowan Hall Maudsley, and Olivier Morin
 
 
 
